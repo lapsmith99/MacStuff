@@ -1,0 +1,105 @@
+filename localxml "/usr/tmp/meh.xml";
+
+proc http
+  url= "https://raw.githubusercontent.com/lapsmith99/P21-Com-IG-html/refs/heads/main/SDTM-IG%203.4%20(FDA).xml"
+  method="GET"
+  out=localxml;
+run;
+
+libname gen xmlv2
+  xmlfileref = localxml
+  automap   = replace
+  xmlmap = "/usr/tmp/meh.map";
+
+proc datasets lib=gen memtype=data;
+quit;
+
+libname p21 xmlv2
+  xmlfileref=localxml
+  xmlmap="/usr/tmp/meh.map"
+  access=readonly;
+
+proc datasets lib=p21 memtype=data;quit;
+
+proc copy in=p21 out=work;run;
+
+*-------------------------------------------------------------------------*;
+proc sort data= itemdef(keep=ItemDef_ORDINAL -- ItemDef_DecodedVariable); by ItemDef_ORDINAL;run;
+proc sort data=translatedtext1(keep=Description1_ORDINAL TranslatedText1 rename=(Description1_ORDINAL=ItemDef_ORDINAL )); by ItemDef_ORDINAL;run;
+proc sort data=itemref(rename=(ItemRef_ItemOID =ItemDef_OID) keep= ItemRef_ItemOID --ItemRef_Core) ; by ItemDef_OID;run;
+data __merge;
+  merge itemdef translatedtext1;
+  by ItemDef_ORDINAL;
+
+  proc sort;by ItemDef_OID;
+run;
+
+data __merge_1;
+  merge __merge itemref;
+  by ItemDef_OID;
+ItemGroupDef_OID = catx('.','IG',scan(ItemDef_OID,2,'.'));
+proc sort; by ItemGroupDef_OID;
+run;
+
+proc sort data=itemgroupdef; by ItemGroupDef_ORDINAL;run;
+proc sort data=translatedtext(rename=(Description_ORDINAL =  ItemGroupDef_ORDINAL));by ItemGroupDef_ORDINAL;run;
+
+data __serge;
+  merge itemgroupdef translatedtext;
+  by ItemGroupDef_ORDINAL;
+proc sort; by ItemGroupDef_OID;
+run;
+
+data __Fin;
+  merge __merge_1 (in=a) __serge;
+  by ItemGroupDef_OID;
+  if a;
+  proc sort; by ItemGroupDef_ORDINAL ItemRef_OrderNumber ; 
+run;
+
+data __fin;
+  set __fin;
+  drop ItemDef_ORDINAL ItemDef_OID ItemGroupDef_OID MetaDataVersion_ORDINAL ItemGroupDef_ORDINAL  ItemGroupDef_ArchiveLocationID ItemGroupDef_IsReferenceData TranslatedText_ORDINAL;
+run; 
+
+proc sort data=__fin out=sorted_data;
+    by ItemGroupDef_Name;
+run;
+
+/* 2. Create a flag to toggle colors when ItemGroupDef_Name changes */
+data final_data;
+    set sorted_data;
+    retain color_flag 0;
+    by ItemGroupDef_Name;
+    if first.ItemGroupDef_Name then color_flag = mod(color_flag + 1, 2);
+run;
+options linesize=max orientation=landscape;
+/* 3. Export to Excel with formatting and filters */
+ods excel file="/mnt/c/nuk/Resources/MacLib/SDTM_structure.xlsx" 
+    options(autofilter='all' 
+            sheet_name='Items' 
+            frozen_headers='yes' 
+            embedded_titles='yes');
+
+proc report data=final_data nowd 
+    style(header)={background=#4F81BD color=white font_weight=bold};
+    
+    column color_flag ItemGroupDef_Name _all_; /* Include all variables */
+    
+    /* Hide the helper flag column */
+    define color_flag / noprint;
+    define ItemGroupDef_Name / display "Item Group";
+
+    /* Apply alternating row colors based on the group flag */
+    compute ItemGroupDef_Name;
+        if color_flag = 1 then do;
+            call define(_row_, "style", "style={background=#EBF1DE}"); /* Light Green */
+        end;
+        else do;
+            call define(_row_, "style", "style={background=#FFFFFF}"); /* White */
+        end;
+    endcomp;
+
+run;
+
+ods excel close;
