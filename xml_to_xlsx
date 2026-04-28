@@ -73,33 +73,17 @@ data final_data;
     by ItemGroupDef_Name;
     if first.ItemGroupDef_Name then color_flag = mod(color_flag + 1, 2);
 run;
-options linesize=max orientation=landscape;
-/* 3. Export to Excel with formatting and filters */
-ods excel file="/mnt/c/nuk/Resources/MacLib/SDTM_structure.xlsx" 
-    options(autofilter='all' 
-            sheet_name='Items' 
-            frozen_headers='yes' 
-            embedded_titles='yes');
 
-proc report data=final_data nowd 
-    style(header)={background=#4F81BD color=white font_weight=bold};
-    
-    column color_flag ItemGroupDef_Name _all_; /* Include all variables */
-    
-    /* Hide the helper flag column */
-    define color_flag / noprint;
-    define ItemGroupDef_Name / display "Item Group";
-
-    /* Apply alternating row colors based on the group flag */
-    compute ItemGroupDef_Name;
-        if color_flag = 1 then do;
-            call define(_row_, "style", "style={background=#EBF1DE}"); /* Light Green */
-        end;
-        else do;
-            call define(_row_, "style", "style={background=#FFFFFF}"); /* White */
-        end;
-    endcomp;
-
+data SDTM_structure;
+  set final_data;
+  drop color_flag;
 run;
 
-ods excel close;
+libname tgt "/mnt/c/nuk/Resources/MacLib/";
+filename outjson "/mnt/c/nuk/Resources/MacLib/SDTM_structure.json";
+proc copy in=work out=tgt;
+    select SDTM_structure;
+run;
+proc json out=outjson pretty;
+    export work.SDTM_structure;
+run;
