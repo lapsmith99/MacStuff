@@ -8,7 +8,7 @@
 ,source2=     
 ) / store secure;
 %local i url;
-
+%let _start_time = %sysfunc(datetime());
 %* Adjust value of SOURCE2 parameter to valid syntax for %INCLUDE statement ;
 %if %length(&source2) %then %do;
   %if %sysfunc(findw(n no 0 nosource nosource2,&source2,/,sit)) %then %do;
@@ -30,4 +30,15 @@
   %include _github_ &source2;
 %end;
 filename _github_ ;
-%mend github_include;
+
+/* End timer */
+%let _end_time = %sysfunc(datetime());
+
+/* Calculate duration in seconds */
+%let _duration = %sysevalf(&_end_time - &_start_time);
+
+/* Print results */
+%put NOTE: Start Time = %sysfunc(putn(&_start_time, datetime20.));
+%put NOTE: End Time   = %sysfunc(putn(&_end_time, datetime20.));
+%put NOTE: Duration   = &_duration seconds;
+%mend;
