@@ -96,7 +96,7 @@ data final_out;
 run;
 
 
-libname meh &folder_path;
+libname meh "&folder_path.";
 
 proc copy in=work out=meh;
     select final_out;
