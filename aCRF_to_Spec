@@ -1,5 +1,7 @@
 %macro acrf_to_spec(inxfdf=) ;
-
+filename junk temp;
+proc printto log=junk;
+run;
 proc datasets library=work kill nolist;
 run;
 quit;
@@ -7,9 +9,8 @@ quit;
 filename src "&inxfdf.";
 filename dest "/usr/tmp/meh.xml";
 %let mysrc = &inxfdf;
-/* 2. Extract the folder path by finding the last slash */
-%let folder_path = %substr(&mysrc, 1, %sysfunc(find(&mysrc, /, -%length(&mysrc))));
-
+/* 2. Find the last slash and subtract 1 from that position to remove it */
+%let folder_path = /%substr(&mysrc, 1, %eval(%sysfunc(find(&mysrc, /, -%length(&mysrc))) - 1));
 %put Folder is: &folder_path;
 /* 2. Execute the copy and rename in a DATA step */
 data _null_;
@@ -89,7 +90,7 @@ data final_out;
 run;
 
 
-libname meh "&folder_path.";
+libname meh "&folder_path";
 
 proc copy in=work out=meh;
     select final_out;
@@ -100,4 +101,6 @@ libname tgt clear;
 proc datasets library=work kill nolist;
 run;
 quit;
+proc printto; 
+run;
 %mend;
