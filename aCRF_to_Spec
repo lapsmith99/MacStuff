@@ -8,7 +8,8 @@ filename src "&inxfdf.";
 filename dest "/usr/tmp/meh.xml";
 
 /* 2. Extract the folder path by finding the last slash */
-%let folder_path = %substr(&src, 1, length(&src) - length(scan(reverse(&src), 1, '/')) - 1);
+%let folder_path = %substr(&src, 1, %sysfunc(find(&src, /, -%length(&src))));
+
 %put Folder is: &folder_path;
 /* 2. Execute the copy and rename in a DATA step */
 data _null_;
