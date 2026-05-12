@@ -1,0 +1,109 @@
+%macro acrf_to_spec(inxfdf=) ;
+
+
+libname _all_ clear;
+proc datasets library=work kill nolist;
+run;
+quit;
+/* 1. Assign filerefs for the source and destination */
+filename src "&inxfdf.";
+filename dest "/usr/tmp/meh.xml";
+/* 1. Get the full path string from the fileref 'src' */
+%let full_path = %sysfunc(pathname(src));
+
+/* 2. Extract the folder path by finding the last slash */
+%let folder_path = %substr(&full_path, 1, %sysfunc(find(&full_path, /, -%length(&full_path))));
+
+%put Folder is: &folder_path;
+/* 2. Execute the copy and rename in a DATA step */
+data _null_;
+   rc = fcopy('src', 'dest');
+    fpath = pathname('src');
+   
+   put 'Full Path: ' fpath;
+run;
+filename localxml "/usr/tmp/meh.xml";
+libname gen xmlv2
+  xmlfileref = localxml
+  automap   = replace
+  xmlmap = "/usr/tmp/meh.map";
+
+proc copy in=gen out=work;run;
+
+proc sort data=span; by p_ORDINAL;run;
+proc sort data=p; by  p_ORDINAL;run;
+
+data _x;
+  merge p span;
+  by p_ordinal;
+  proc sort; by body_ORDINAL;
+run;
+
+data _a;
+  merge _x body;
+  by body_ORDINAL;
+proc sort; by contents_richtext_ORDINAL;
+run;
+
+data _b;
+  merge _a contents_richtext;
+  by contents_richtext_ORDINAL;
+  proc sort; by freetext_ORDINAL;
+run;
+
+data fin;
+  merge _b freetext;
+  by freetext_ordinal;
+run;
+
+proc datasets lib=work nolist;
+    save fin;
+quit;
+
+data fin1;
+  set fin;
+  spectext = catx(' ',p,span);
+  if prxmatch('/[()\[\]]/', spectext) > 0 then delete;
+
+  ItemDef_Name = spectext;
+  pagenum = freetext_page;
+  hex_color = freetext_color;
+  keep ItemDef_Name spectext pagenum hex_color;
+proc sort nodupkey;by ItemDef_Name spectext pagenum hex_color;
+run;
+
+libname tgt "/mnt/c/nuk/Resources/MacLib/";
+
+
+proc sql noprint;
+  create table final as
+  Select  b.ItemDef_Name as varable,
+          compged(a.ItemDef_Name, b.ItemDef_Name) as compged,
+          spedis(a.ItemDef_Name, b.ItemDef_Name) as spedis,      
+   a.*,b.*
+  from fin1 a , tgt.sdtm_structure b
+  where calculated compged < 10000 and calculated spedis <10000
+ order by compged,spedis,
+;
+quit;
+
+proc sort data=final nodupkey;by ItemDef_Name spectext pagenum hex_color ;run;
+
+data final_out;
+  merge fin1(in=a) final;
+  by ItemDef_Name;
+  if a;
+run;
+
+
+libname meh "/mnt/c/nuk/Studies/Klotho/KS101-CLIN-001/Primary/02 Specifications/01 aCRF/";
+
+proc copy in=work out=meh;
+    select final_out;
+run;
+
+libname _all_ clear;
+proc datasets library=work kill nolist;
+run;
+quit;
+%mend;
