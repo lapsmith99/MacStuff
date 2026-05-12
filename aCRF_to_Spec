@@ -6,19 +6,13 @@ quit;
 /* 1. Assign filerefs for the source and destination */
 filename src "&inxfdf.";
 filename dest "/usr/tmp/meh.xml";
-/* 1. Get the full path string from the fileref 'src' */
-%let full_path = %sysfunc(pathname(src));
 
 /* 2. Extract the folder path by finding the last slash */
-%let folder_path = %substr(&full_path, 1, %sysfunc(find(&full_path, /, -%length(&full_path))));
-
+%let folder_path = %substr(&src, 1, length(&src) - length(scan(reverse(&src), 1, '/')) - 1);
 %put Folder is: &folder_path;
 /* 2. Execute the copy and rename in a DATA step */
 data _null_;
    rc = fcopy('src', 'dest');
-    fpath = pathname('src');
-   
-   put 'Full Path: ' fpath;
 run;
 filename localxml "/usr/tmp/meh.xml";
 libname gen xmlv2
