@@ -83,7 +83,7 @@ proc sql noprint;
    a.*,b.*
   from fin1 a , tgt.sdtm_structure b
   where calculated compged < 10000 and calculated spedis <10000
- order by compged,spedis,
+ order by compged,spedis
 ;
 quit;
 
