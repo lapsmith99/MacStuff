@@ -87,3 +87,8 @@ run;
 proc json out=outjson pretty;
     export work.SDTM_structure;
 run;
+
+libname _all_ clear;
+proc datasets library=work kill nolist;
+run;
+quit;
