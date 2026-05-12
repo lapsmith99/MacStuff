@@ -96,7 +96,7 @@ data final_out;
 run;
 
 
-libname meh "/mnt/c/nuk/Studies/Klotho/KS101-CLIN-001/Primary/02 Specifications/01 aCRF/";
+libname meh &folder_path;
 
 proc copy in=work out=meh;
     select final_out;
