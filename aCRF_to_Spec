@@ -1,7 +1,5 @@
-%macro acrf_to_spec(inxfdf=) ;
+%macro acrf_to_spec(inxfdf=) /mstored secure;
 
-
-libname _all_ clear;
 proc datasets library=work kill nolist;
 run;
 quit;
@@ -29,7 +27,7 @@ libname gen xmlv2
   xmlmap = "/usr/tmp/meh.map";
 
 proc copy in=gen out=work;run;
-
+libname gen clear;
 proc sort data=span; by p_ORDINAL;run;
 proc sort data=p; by  p_ORDINAL;run;
 
@@ -102,7 +100,8 @@ proc copy in=work out=meh;
     select final_out;
 run;
 
-libname _all_ clear;
+libname meh clear;
+libname tgt clear;
 proc datasets library=work kill nolist;
 run;
 quit;
