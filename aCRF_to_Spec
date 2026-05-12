@@ -1,4 +1,4 @@
-%macro acrf_to_spec(inxfdf=) /mstored secure;
+%macro acrf_to_spec(inxfdf=) / store secure;
 
 proc datasets library=work kill nolist;
 run;
