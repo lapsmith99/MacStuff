@@ -6,7 +6,7 @@ quit;
 /* 1. Assign filerefs for the source and destination */
 filename src "&inxfdf.";
 filename dest "/usr/tmp/meh.xml";
-let mysrc = &inxfdf;
+%let mysrc = &inxfdf;
 /* 2. Extract the folder path by finding the last slash */
 %let folder_path = %substr(&mysrc, 1, %sysfunc(find(&mysrc, /, -%length(&mysrc))));
 
